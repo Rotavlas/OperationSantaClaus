@@ -1,0 +1,72 @@
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Carte Simple | ArcGIS Maps SDK for JavaScript 4.31</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/dark/main.css" />
+  <script src="https://js.arcgis.com/4.31/"></script>
+  <style>
+    html, body, #viewDiv {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewDiv"></div>
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/portal/PortalItem"
+    ], function(Map, MapView, FeatureLayer, PortalItem) {
+      var map = new Map({
+        basemap: "streets"
+      });
+
+      var view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [0.5317, 49.5739], // Longitude, latitude (Caux Seine)
+        zoom: 10
+      });
+
+      var portalItem1 = new PortalItem({
+        id: "71da837a553e4ddcb667862387a4af6f" // les inter Co nationales
+      });
+
+      var featureLayer1 = new FeatureLayer({
+        portalItem: portalItem1,
+        definitionExpression: "CODE_SIREN = '200010700'", // filtre de Caux Seine uniquement sur la France
+        labelingInfo: [{ // Ecriture de Caux Seine sur la carte 
+          labelExpressionInfo: { expression: "$feature.NOM" },
+          symbol: {
+            type: "text",  
+            color: "blue",
+            haloColor: "white",
+            haloSize: "1px",
+            font: {  
+              size: 12,
+              family: "sans-serif"
+            }
+          }
+        }]
+      });
+
+      var portalItem2 = new PortalItem({
+        id: "cb3cfeed5a5044cb9f7e60f20de5b5d2" // nouvelle feature layer
+      });
+
+      var featureLayer2 = new FeatureLayer({
+        portalItem: portalItem2,
+        definitionExpression: "TYPE = 'Bâtiment'" // filtre pour n'afficher que les bâtiments
+      });
+
+      map.addMany([featureLayer1, featureLayer2]);
+    });
+  </script>
+</body>
+</html>
