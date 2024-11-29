@@ -1,0 +1,176 @@
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Operation Santa Claus ❄️</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/dark/main.css" />
+  <script src="https://js.arcgis.com/4.31/"></script>
+  <style>
+    html, body, #viewDiv {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #playButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      padding: 10px 20px;
+      background: #0079c1;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #playButton:hover {
+      background: #005e91;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewDiv"></div>
+  <button id="playButton">Play</button>
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/portal/PortalItem",
+      "esri/Graphic"
+    ], function(Map, MapView, FeatureLayer, PortalItem, Graphic) {
+      // Création de la carte
+      var map = new Map({
+        basemap: "streets"
+      });
+
+      var view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [0.5317, 49.5739], // Longitude, latitude
+        zoom: 10
+      });
+
+      // Ajout des frontières avec filtres et étiquettes
+      var portalItem1 = new PortalItem({
+        id: "71da837a553e4ddcb667862387a4af6f" // Les intercommunalités nationales
+      });
+
+      var featureLayer1 = new FeatureLayer({
+        portalItem: portalItem1,
+        definitionExpression: "CODE_SIREN = '200010700'", // Filtre de Caux Seine uniquement
+        labelingInfo: [{ // Ajout des étiquettes avec le nom
+          labelExpressionInfo: { expression: "$feature.NOM" },
+          symbol: {
+            type: "text",
+            color: "blue",
+            haloColor: "white",
+            haloSize: "1px",
+            font: {
+              size: 12,
+              family: "sans-serif"
+            }
+          }
+        }]
+      });
+
+      map.add(featureLayer1);
+
+      // Ajouter la couche des bâtiments
+      var buildingsLayer = new FeatureLayer({
+        portalItem: {
+          id: "13f545f0d5da42c9a445cc679604f24c" // Remplacez par l'ID de votre couche des bâtiments
+        }
+      });
+
+      map.add(buildingsLayer);
+
+      // Création du point dynamique
+      var pointSymbol = {
+        type: "simple-marker",
+        color: "red",
+        size: "10px"
+      };
+
+      var pointGraphic = new Graphic({
+        geometry: {
+          type: "point",
+          longitude: 0.5317,
+          latitude: 49.5739
+        },
+        symbol: pointSymbol
+      });
+
+      view.graphics.add(pointGraphic);
+
+      // Liste pour stocker les graphiques des bâtiments mis en surbrillance
+      var buildingGraphics = [];
+
+      // Fonction pour récupérer les coordonnées des bâtiments
+      function getBuildingCoordinates() {
+        return buildingsLayer.queryFeatures({
+          where: "1=1", // Récupérer tous les bâtiments
+          outFields: ["*"],
+          returnGeometry: true
+        }).then(function(results) {
+          return results.features.map(function(feature) {
+            return feature.geometry;
+          });
+        });
+      }
+
+      // Animation
+      function animatePoint(coordinates) {
+        let index = 0;
+
+        function moveToNextBuilding() {
+          console.log("Index actuel :", index); // Vérification de l'index
+          console.log("Longueur du tableau des coordonnées :", coordinates.length); // Vérifier la longueur des coordonnées
+
+          if (index < coordinates.length) {
+            // Récupérer le bâtiment sous le point actuel
+            var currentBuilding = coordinates[index];
+            console.log("Déplacement vers le bâtiment :", currentBuilding); // Afficher les coordonnées du bâtiment en cours
+
+            // Mettre en évidence le bâtiment en cours
+            var buildingGraphic = new Graphic({
+              geometry: currentBuilding,
+              symbol: {
+                type: "simple-fill",
+                color: [255, 0, 0, 0.3], // couleur rouge avec opacité
+                outline: {
+                  color: "red",
+                  width: 2
+                }
+              }
+            });
+
+            buildingGraphics.push(buildingGraphic); // Ajouter à la liste
+
+            // Ajouter ou mettre à jour le graphique du bâtiment
+            view.graphics.add(buildingGraphic);
+
+            // Déplacer le point
+            pointGraphic.geometry = currentBuilding;
+
+            index++;
+            // L'intervalle peut être plus long pour éviter que l'animation soit trop rapide.
+            setTimeout(moveToNextBuilding, 1); // Pause de 1.5 seconde entre chaque déplacement
+          } else {
+            console.log("L'animation est terminée.");
+          }
+        }
+
+        moveToNextBuilding();
+      }
+
+      // Bouton "Play"
+      document.getElementById("playButton").addEventListener("click", function() {
+        getBuildingCoordinates().then(function(coordinates) {
+          animatePoint(coordinates);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
